@@ -1,7 +1,7 @@
 ---
-id: samples-mux
-title: Sample Product Catalog App (Golang)
-sidebar_label: Mux + Postgres
+id: samples-mysql
+title: Mux MySQL Sample Application
+sidebar_label: Mux + MySQL
 description: The following sample app showcases how to use Mux framework and the Keploy Platform.
 tags:
   - go
@@ -9,12 +9,12 @@ tags:
   - samples
   - examples
   - tutorial
-  - postgres
+  - mysql
+  - sql
   - mux-framework
 keyword:
   - Mux Framework
-  - Postgres
-  - SQL
+  - MySQL
   - Golang
   - API Test generator
   - Auto Testcase generation
@@ -22,7 +22,7 @@ keyword:
 
 ## Introduction
 
-🪄 Dive into the world of Product catelog and see how seamlessly Keploy integrates with [Mux](https://github.com/gorilla/mux) and [Postgres](https://www.postgresql.org/). Buckle up, it's gonna be a fun ride! 🎢
+A sample url shortener app to test Keploy integration capabilities using [Mux](https://github.com/gorilla/mux) and [MySQL](https://www.mysql.com/). Buckle up, it's gonna be a fun ride! 🎢
 
 import InstallationGuide from '../concepts/installation.md'
 
@@ -30,177 +30,104 @@ import InstallationGuide from '../concepts/installation.md'
 
 ## Get Started! 🎬
 
-## Clone a sample Product Catalog App🧪
+## Clone a sample URL shortener app 🧪
 
 ```bash
-git clone https://github.com/keploy/samples-go.git && cd samples-go/mux-sql
+git clone https://github.com/keploy/samples-go.git && cd samples-go/mux-mysql
 go mod download
 ```
 
-## Installation 📥
+## Installation Keploy
 
 There are 2 ways you can run this sample application.
 
-- [Using Docker compose : running application as well as Postgres on Docker container](#using-docker-compose-)
-- [Using Docker container for Postgres and running application locally](#running-app-locally-on-linuxwsl-)
+- [Using Docker compose : running application as well as MySQL on Docker container](#using-docker-compose-)
+- [Using Docker container for MySQL and running application locally](#running-app-locally-on-linuxwsl-)
 
 ## Using Docker Compose 🐳
 
-We will be using Docker compose to run the application as well as Postgres on Docker container.
+We will be using Docker compose to run the application as well as MySQL on Docker container.
 
-### Lights, Camera, Record! 🎥
-
-Fire up the application and Postgres instance with Keploy. Keep an eye on the two key flags:
-`-c`: Command to run the app (e.g., `docker compose up`).
-
-`--containerName`: The container name in the `docker-compose.yml` for traffic interception.
-
-### Capture the TestCase
+### Start MySQL Instance
 
 ```bash
-keploy record -c "docker compose up" --containerName "muxSqlApp"
+docker run -p 3306:3306 --rm --name mysql --network keploy-network -e MYSQL_ROOT_PASSWORD=my-secret-pw -d mysql:latest
 ```
 
-🔥 Challenge time! Generate some test cases. How? Just **make some API calls**. Postman, Hoppscotch or even curl - take your pick!
+#### Creating Docker Volume
 
-#### Generate a Test Case
+```bash
+docker volume create --driver local --opt type=debugfs --opt device=debugfs debugfs
+```
+
+### Capture the Testcases
+
+Now, we will create the docker image of our application:-
+
+```zsh
+docker build -t url-short .
+```
+
+Once we have our Docker image file ready,this command will start the recording of API calls using ebpf:-
+
+```shell
+keploy record -c "docker run -p 8080:8080 --name urlshort --rm --network keploy-network url-short:latest"
+```
+
+Make API Calls using Hoppscotch, Postman or cURL command. Keploy with capture those calls to generate the test-suites containing testcases and data mocks.
+
+### Generate testcases
+
+To generate testcases we just need to make some API calls. You can use [Postman](https://www.postman.com/), [Hoppscotch](https://hoppscotch.io/), or simply `curl`
+
+#### Generate shortened url
 
 ```bash
 curl --request POST \
---url http://localhost:8010/product \
---header 'content-type: application/json' \
---data '{
-  "name":"Bubbles",
-  "price": 123
+  --url http://localhost:8080/create \
+  --header 'content-type: application/json' \
+  --data '{
+  "link": "https://github.com"
 }'
 ```
 
-Here's a peek of what you get:
+this will return the shortened url. The ts would automatically be ignored during testing because it'll always be different.
 
-```json
+```bash
 {
-  "id": 1,
-  "name": "Bubbles",
-  "price": 123
+  "message":"Converted",
+  "link":"http://localhost:8080/links/1",
+  "status":true
 }
 ```
 
-🎉 Woohoo! With a simple API call, you've crafted a test case with a mock! Dive into the Keploy directory and feast your eyes on the newly minted `test-1.yml` and `mocks.yml`
-
-```yaml
-version: api.keploy.io/v1beta2
-kind: Http
-name: test-1
-spec:
-  metadata: {}
-  req:
-    method: POST
-    proto_major: 1
-    proto_minor: 1
-    url: http://localhost:8010/product
-    header:
-      Accept: "*/*"
-      Content-Length: "46"
-      Content-Type: application/json
-      Host: localhost:8010
-      User-Agent: curl/8.1.2
-    body: |-
-      {
-          "name":"Bubbles",
-          "price": 123
-          }
-    body_type: ""
-  resp:
-    status_code: 201
-    header:
-      Content-Length: "37"
-      Content-Type: application/json
-      Date: Mon, 09 Oct 2023 06:51:16 GMT
-    body: '{"id":4,"name":"Bubbles","price":123}'
-    body_type: ""
-    status_message: ""
-    proto_major: 0
-    proto_minor: 0
-  objects: []
-  assertions:
-    noise:
-      - header.Date
-  created: 1696834280
-```
-
-this is how `mocks.yml` generated would look like:-
-
-```yaml
-version: api.keploy.io/v1beta2
-kind: Postgres
-name: mocks
-spec:
-  metadata: {}
-  postgresrequests:
-    - origin: client
-      message:
-        - type: binary
-          data: AAAAZgADAABleHRyYV9mbG9hdF9kaWdpdHMAMgB1c2VyAHBvc3RncmVzAGRhdGFiYXNlAHBvc3RncmVzAGNsaWVudF9lbmNvZGluZwBVVEY4AGRhdGVzdHlsZQBJU08sIE1EWQAA
-  postgresresponses:
-    - origin: server
-      message:
-        - type: binary
-          data: UgAAAAwAAAAF0ykSRQ==
----
-version: api.keploy.io/v1beta2
-kind: Postgres
-name: mocks
-spec:
-  metadata: {}
-  postgresrequests:
-    - origin: client
-      message:
-        - type: binary
-          data: cAAAAChtZDU3ZmY0ZTZhZGEzMThlZDJiYWM5ODQyY2YwNmEyODE2MwA=
-  postgresresponses:
-    - origin: server
-      message:
-        - type: binary
-          data: UgAAAAgAAAAAUwAAABZhcHBsaWNhdGlvbl9uYW1lAABTAAAAGWNsaWVudF9lbmNvZGluZwBVVEY4AFMAAAAXRGF0ZVN0eWxlAElTTywgTURZAFMAAAAZaW50ZWdlcl9kYXRldGltZXMAb24AUwAAABtJbnRlcnZhbFN0eWxlAHBvc3RncmVzAFMAAAAUaXNfc3VwZXJ1c2VyAG9uAFMAAAAZc2VydmVyX2VuY29kaW5nAFVURjgAUwAAADFzZXJ2ZXJfdmVyc2lvbgAxMC41IChEZWJpYW4gMTAuNS0yLnBnZGc5MCsxKQBTAAAAI3Nlc3Npb25fYXV0aG9yaXphdGlvbgBwb3N0Z3JlcwBTAAAAI3N0YW5kYXJkX2NvbmZvcm1pbmdfc3RyaW5ncwBvbgBTAAAAEVRpbWVab25lAFVUQwBLAAAADAAAAB6JC1lnWgAAAAVJ
----
-version: api.keploy.io/v1beta2
-kind: Postgres
-name: mocks
-spec:
-  metadata: {}
-  postgresrequests:
-    - origin: client
-      message:
-        - type: binary
-          data: UAAAAEUASU5TRVJUIElOVE8gcHJvZHVjdHMobmFtZSwgcHJpY2UpIFZBTFVFUygkMSwgJDIpIFJFVFVSTklORyBpZAAAAEQAAAAGUwBTAAAABA==
-  postgresresponses:
-    - origin: server
-      message:
-        - type: binary
-          data: MQAAAAR0AAAADgACAAAAGQAABqRUAAAAGwABaWQAAABAAgABAAAAFwAE/////wAAWgAAAAVJ
-```
-
-#### Fetch Product from Catalog
+#### Access all the shortened urls
 
 ```bash
-curl --request GET \  --url http://localhost:8010/products
+curl --request GET http://localhost:8080/all
 ```
 
-Or just type `http://localhost:8010/products` in your browser. Your choice!
+Now both these API calls were captured as **editable** testcases and written to `keploy/tests` folder. The keploy directory would also have `mocks` file that contains all the outputs of MySQL operations. Here's what the folder structure look like:
 
-Spotted the new test and mock files in your project? High five! 🙌
+![Testcase](/img/mux-mysql-keploy-record.png)
 
-### Run Tests
+Now, let's see the magic! ✨💫
 
-Time to put things to the test 🧪
+Want to see if everything works as expected?
 
-```bash
-keploy test -c "docker compose up" --containerName "muxSqlApp" --delay 10
+### Run the Testcases
+
+Now let's run the test mode (in the echo-sql directory, not the Keploy directory).
+
+```shell
+keploy test -c "docker run -p 8080:8080 --name urlshort --rm --network keploy-network url-short:latest" --delay 10
 ```
 
-> The `--delay` flag? Oh, that's just giving your app a little breather (in seconds) before the test cases come knocking.
+output should look like
 
-Final thoughts? Dive deeper! Try different API calls, tweak the DB response in the `mocks.yml`, or fiddle with the request or response in `test-x.yml`. Run the tests again and see the magic unfold!✨👩‍💻👨‍💻✨
+![Testrun](/img/mux-mysql-keploy-tests.png)
+
+So no need to setup fake database/apis MySQL or write mocks for them. Keploy automatically mocks them and, **The application thinks it's talking to MySQL 😄**
 
 ### Wrapping it up 🎉
 
@@ -212,177 +139,85 @@ Happy coding! ✨👩‍💻👨‍💻✨
 
 ## Running App Locally on Linux/WSL 🐧
 
-We'll be running our sample application right on Linux, but just to make things a tad more thrilling, we'll have the database (Postgres) chill on Docker. Ready? Let's get the party started!🎉
+We'll be running our sample application right on Linux, but just to make things a tad more thrilling, we'll have the database (MySQL) chill on Docker. Ready? Let's get the party started!🎉
 
-First things first, update the First things first, update the postgres host on **line 10** in main.go, update the host to `localhost`.
+> To establish a network for your application using Keploy on Docker, follow these steps.
+> If you're using a docker-compose network, replace keploy-network with your app's `docker_compose_network_name` below.
 
-#### 🍃 Kickstart PostgresDB
+### Let's start the MySQL Instance
 
-Let's breathe life into your Postgres container. A simple spell should do the trick:
-
-```bash
-docker compose up postgres
+```zsh
+docker run -p 3306:3306 --rm --name mysql -e MYSQL_ROOT_PASSWORD=my-secret-pw -d mysql:latest
 ```
 
-### 📼 Roll the Tape - Recording Time!
+Now, we will create the binary of our application:-
 
-Ready, set, record! Here's how:
+```zsh
+export ConnectionString="root:my-secret-pw@tcp(localhost:3306)/mysql"
 
-```bash
-sudo -E env PATH=$PATH keploy record -c "go run main.go app.go"
+go build -o main
 ```
 
-Keep an eye out for the `-c `flag! It's the command charm to run the app. Whether you're using `go run main.go app.go` or the binary path like `./test-app-product-catelog`, it's your call.
+### Capture the Testcases
 
-Alright, magician! With the app alive and kicking, let's weave some test cases. The spell? Making some API calls! Postman, Hoppscotch, or the classic curl - pick your wand.
+```zsh
+sudo -E PATH=$PATH keploy record -c "./main"
+```
 
-#### Generate a Test Case
+![Testcase](https://github.com/heyyakash/samples-go/assets/85030597/2b4f3c04-4631-4f9a-b317-7fdb6db87879)
 
-✨ A pinch of URL magic:
+### Generate testcases
+
+To generate testcases we just need to make some API calls. You can use Postman, Hoppscotch, or simply curl
+
+#### Generate shortened url
 
 ```bash
 curl --request POST \
---url http://localhost:8010/product \
---header 'content-type: application/json' \
---data '{
-  "name":"Bubbles",
-  "price": 123
-  }'
+  --url http://localhost:8080/create \
+  --header 'content-type: application/json' \
+  --data '{
+  "link": "https://google.com"
+}'
 ```
 
-And... voila! A Product entry appears:
+this will return the shortened url.
 
 ```json
 {
-  "id": 1,
-  "name": "Bubbles",
-  "price": 123
+  "message": "Converted",
+  "link": "http://localhost:8080/links/1",
+  "status": true
 }
 ```
 
-Give yourself a pat on the back! With that simple spell, you've conjured up a test case with a mock! Explore the **Keploy directory** and you'll discover your handiwork in `test-1.yml` and `mocks.yml`.
+#### Redirect to original url from shortened url
 
-```yaml
-version: api.keploy.io/v1beta2
-kind: Http
-name: test-1
-spec:
-  metadata: {}
-  req:
-    method: POST
-    proto_major: 1
-    proto_minor: 1
-    url: http://localhost:8010/product
-    header:
-      Accept: "*/*"
-      Content-Length: "46"
-      Content-Type: application/json
-      Host: localhost:8010
-      User-Agent: curl/8.1.2
-    body: |-
-      {
-          "name":"Bubbles",
-          "price": 123
-          }
-    body_type: ""
-  resp:
-    status_code: 201
-    header:
-      Content-Length: "37"
-      Content-Type: application/json
-      Date: Mon, 09 Oct 2023 06:51:16 GMT
-    body: '{"id":4,"name":"Bubbles","price":123}'
-    body_type: ""
-    status_message: ""
-    proto_major: 0
-    proto_minor: 0
-  objects: []
-  assertions:
-    noise:
-      - header.Date
-  created: 1696834280
+```zsh
+curl -request GET localhost:8080/links/1
 ```
 
-this is how `mocks.yml` generated would look like:-
+Now, let's see the magic! 🪄💫
 
-```yaml
-version: api.keploy.io/v1beta2
-kind: Postgres
-name: mocks
-spec:
-  metadata: {}
-  postgresrequests:
-    - origin: client
-      message:
-        - type: binary
-          data: AAAAZgADAABleHRyYV9mbG9hdF9kaWdpdHMAMgB1c2VyAHBvc3RncmVzAGRhdGFiYXNlAHBvc3RncmVzAGNsaWVudF9lbmNvZGluZwBVVEY4AGRhdGVzdHlsZQBJU08sIE1EWQAA
-  postgresresponses:
-    - origin: server
-      message:
-        - type: binary
-          data: UgAAAAwAAAAF0ykSRQ==
----
-version: api.keploy.io/v1beta2
-kind: Postgres
-name: mocks
-spec:
-  metadata: {}
-  postgresrequests:
-    - origin: client
-      message:
-        - type: binary
-          data: cAAAAChtZDU3ZmY0ZTZhZGEzMThlZDJiYWM5ODQyY2YwNmEyODE2MwA=
-  postgresresponses:
-    - origin: server
-      message:
-        - type: binary
-          data: UgAAAAgAAAAAUwAAABZhcHBsaWNhdGlvbl9uYW1lAABTAAAAGWNsaWVudF9lbmNvZGluZwBVVEY4AFMAAAAXRGF0ZVN0eWxlAElTTywgTURZAFMAAAAZaW50ZWdlcl9kYXRldGltZXMAb24AUwAAABtJbnRlcnZhbFN0eWxlAHBvc3RncmVzAFMAAAAUaXNfc3VwZXJ1c2VyAG9uAFMAAAAZc2VydmVyX2VuY29kaW5nAFVURjgAUwAAADFzZXJ2ZXJfdmVyc2lvbgAxMC41IChEZWJpYW4gMTAuNS0yLnBnZGc5MCsxKQBTAAAAI3Nlc3Npb25fYXV0aG9yaXphdGlvbgBwb3N0Z3JlcwBTAAAAI3N0YW5kYXJkX2NvbmZvcm1pbmdfc3RyaW5ncwBvbgBTAAAAEVRpbWVab25lAFVUQwBLAAAADAAAAB6JC1lnWgAAAAVJ
----
-version: api.keploy.io/v1beta2
-kind: Postgres
-name: mocks
-spec:
-  metadata: {}
-  postgresrequests:
-    - origin: client
-      message:
-        - type: binary
-          data: UAAAAEUASU5TRVJUIElOVE8gcHJvZHVjdHMobmFtZSwgcHJpY2UpIFZBTFVFUygkMSwgJDIpIFJFVFVSTklORyBpZAAAAEQAAAAGUwBTAAAABA==
-  postgresresponses:
-    - origin: server
-      message:
-        - type: binary
-          data: MQAAAAR0AAAADgACAAAAGQAABqRUAAAAGwABaWQAAABAAgABAAAAFwAE/////wAAWgAAAAVJ
+Now both these API calls were captured as a testcase and should be visible on the Keploy CLI. You should be seeing an app named keploy folder with the test cases we just captured and data mocks created
+
+### Run the captured testcases
+
+Now that we have our testcase captured, run the test file.
+
+```zsh
+sudo -E PATH=$PATH keploy test -c "./main" --delay 10
 ```
 
-Now, the real fun begins. Let's weave more spells!
+So no need to setup dependencies like MySQL, web-go locally or write mocks for your testing.
 
-#### Fetch Product from Catalog
+The application thinks it's talking to MySQL 😄
 
-🚀 Follow the URL road...!
-
-```bash
-curl --request GET \  --url http://localhost:8010/products
-```
-
-Or simply wander over to your browser and visit `http://localhost:8010/products`.
-
-Did you spot the new test and mock scrolls in your project library? Awesome! 👏
-
-<img src="/docs/img/mux-sql-test-cases.png" alt="Sample Keploy Test case and Mock for Mux SQL" width="100%" style={{ borderRadius: '5px' }}/>
-
-### Run Tests 🏁
-
-Ready to put your spells to the test?
-
-```bash
-sudo -E env PATH=$PATH keploy test -c "go run main.go app.go" --delay 10
-```
-
-Final thoughts? Dive deeper! Try different API calls, tweak the DB response in the `mocks.yml`, or fiddle with the request or response in `test-x.yml`. Run the tests again and see the magic unfold! ✨👩‍💻👨‍💻✨
+We will get output something like this:
+![Testrun](https://github.com/heyyakash/samples-go/assets/85030597/472cab5e-9687-4fc5-bd57-3c52f56feedf)
 
 ### Wrapping it up 🎉
 
-Congrats on the journey so far! You've seen Keploy's power, flexed your coding muscles, and had a bit of fun too! Now, go out there and keep exploring, innovating, and creating! Remember, with the right tools and a sprinkle of fun, anything's possible. 😊🚀
+Congrats on the journey so far! You've seen Keploy's power, flexed your coding muscles, and had a bit of fun too! Now, go out there and keep exploring, innovating, and creating! Remember, with the right tools and a sprinkle of fun, anything's possible.😊🚀
 
 Happy coding! ✨👩‍💻👨‍💻✨

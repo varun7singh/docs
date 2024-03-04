@@ -34,7 +34,12 @@
       "label": "Test Coverage Integration",
       "collapsible": true,
       "collapsed": true,
-      "items": ["server/sdk-installation/go", "server/sdk-installation/java", "server/sdk-installation/typescript", "server/sdk-installation/python"]
+      "items": [
+        "server/sdk-installation/go",
+        "server/sdk-installation/java",
+        "server/sdk-installation/typescript",
+        "server/sdk-installation/python"
+      ]
     },
     {
       "type": "category",
@@ -83,10 +88,7 @@
           "label": "Javascript",
           "collapsible": true,
           "collapsed": true,
-          "items": [
-            "quickstart/samples-bunjs",
-            "quickstart/samples-nodejs"
-          ]
+          "items": ["quickstart/samples-bunjs", "quickstart/samples-nodejs"]
         },
         {
           "type": "category",
@@ -102,14 +104,22 @@
       "label": "Keploy-Cloud ☁️",
       "collapsible": true,
       "collapsed": true,
-      "items": ["keploy-cloud/cloud-installation", "keploy-cloud/application-settings", "keploy-cloud/time-freezing"]
+      "items": [
+        "keploy-cloud/cloud-installation",
+        "keploy-cloud/application-settings",
+        "keploy-cloud/time-freezing"
+      ]
     },
     {
       "type": "category",
       "label": "Resources",
       "collapsible": true,
       "collapsed": true,
-      "items": ["dependencies/mongo","keploy-explained/faq","concepts/general-glossary"]
+      "items": [
+        "dependencies/mongo",
+        "keploy-explained/faq",
+        "concepts/general-glossary"
+      ]
     }
   ],
 
